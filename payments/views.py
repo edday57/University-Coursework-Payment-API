@@ -69,19 +69,43 @@ def createTransaction(request):
     if request.method == 'POST':
         body = json.loads(request.body)
         if not validateNewTransaction(body):
-            return HttpResponse('Please ensure the request contains all required fields in the correct format.')
+            return HttpResponse('Please ensure the request contains all required fields in the correct format.', status=400)
         else:
             #Valid body
-            transaction = Transaction.objects.create(user_id=body['user_id'],
-            order_id=body['order_id'],
-            merchant_id=body['merchant_id'], 
-            transaction_amount=body['amount'], 
-            delivery_email=body['delivery_email'],
-            delivery_name=body['delivery_name'],
-            )
-            return HttpResponse(transaction)
+            #Check for existing transaction for order_id
+            try: 
+                transaction = Transaction.objects.get(order_id=body['order_id'])
+                if transaction.status != "Cancelled":
+                    data = serializers.serialize('json', [transaction,])
+                    struct = json.loads(data)
+                    data = addPK(struct[0])
+                    return HttpResponse(json.dumps(data), status=400)
+                else:
+                    transaction = Transaction.objects.create(user_id=body['user_id'],
+                    order_id=body['order_id'],
+                    merchant_id=body['merchant_id'], 
+                    transaction_amount=body['amount'], 
+                    delivery_email=body['delivery_email'],
+                    delivery_name=body['delivery_name'],
+                    )
+                    data = serializers.serialize('json', [transaction,])
+                    struct = json.loads(data)
+                    data = addPK(struct[0])
+                    return HttpResponse(json.dumps(data))
+            except:
+                transaction = Transaction.objects.create(user_id=body['user_id'],
+                order_id=body['order_id'],
+                merchant_id=body['merchant_id'], 
+                transaction_amount=body['amount'], 
+                delivery_email=body['delivery_email'],
+                delivery_name=body['delivery_name'],
+                )
+                data = serializers.serialize('json', [transaction,])
+                struct = json.loads(data)
+                data = addPK(struct[0])
+                return HttpResponse(json.dumps(data))
     else: 
-        return HttpResponse('This API route only accepts POST requests')
+        return HttpResponse('This API route only accepts POST requests', status=400)
 
 @csrf_exempt
 def getTransaction(request, id):
@@ -150,7 +174,10 @@ def makePayment(request, id):
                         transaction.card_details=card
                         transaction.status="paid"
                         transaction.save()
-                        return HttpResponse("Payment completed successfully")
+                        data = serializers.serialize('json', [transaction,])
+                        struct = json.loads(data)
+                        data = addPK(struct[0])
+                        return HttpResponse(json.dumps(data))
                     except:
                         return HttpResponse('Transaction could not be found', status = 404) 
                 elif verify == 1:
@@ -176,7 +203,10 @@ def refundTransaction(request, id):
                             type="refund")
                 transaction.status = "refunded"
                 transaction.save()
-                return HttpResponse('Payment refunded successfully')
+                data = serializers.serialize('json', [transaction,])
+                struct = json.loads(data)
+                data = addPK(struct[0])
+                return HttpResponse(json.dumps(data))
             else:
                 return HttpResponse('Payment could not be refunded', status = 400) 
         except:
@@ -192,7 +222,10 @@ def cancelTransaction(request, id):
             if transaction.status == "New":
                 transaction.status = "cancelled"
                 transaction.save()
-                return HttpResponse('Transaction cancelled successfully')
+                data = serializers.serialize('json', [transaction,])
+                struct = json.loads(data)
+                data = addPK(struct[0])
+                return HttpResponse(json.dumps(data))
             else:
                 return HttpResponse('Payment has already been made or refunded.', status = 400)
         except:
