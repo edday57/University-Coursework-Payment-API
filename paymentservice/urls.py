@@ -24,5 +24,6 @@ urlpatterns = [
     path('api/getUserTransactions/<int:id>', getUserTransactions),
     path('api/makePayment/<int:id>', makePayment),
     path('api/refundTransaction/<int:id>', refundTransaction),
-    path('api/refundTransaction/<int:id>', cancelTransaction)
+    path('api/cancelTransaction/<int:id>', cancelTransaction)
 ]
+
